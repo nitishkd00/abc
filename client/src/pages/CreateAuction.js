@@ -101,9 +101,15 @@ const CreateAuction = () => {
     setLoading(true);
     
     try {
+      // Convert local datetime-local to UTC ISO string
+      const startTimeUTC = new Date(formData.start_time).toISOString();
+      const endTimeUTC = new Date(formData.end_time).toISOString();
+
       const response = await axios.post('/api/auction/create', {
         ...formData,
-        base_price: parseFloat(formData.base_price)
+        base_price: parseFloat(formData.base_price),
+        start_time: startTimeUTC,
+        end_time: endTimeUTC
       });
 
       toast.success('Auction created successfully!');
