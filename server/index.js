@@ -149,6 +149,13 @@ async function startServer() {
 
     setupAuctionEndingJob(io, userSockets);
 
+    if (process.env.NODE_ENV === 'production') {
+      app.use(express.static(path.join(__dirname, '../client/build')));
+      app.get('*', (req, res) => {
+        res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
+      });
+    }
+
     // Error handling middleware
     app.use((err, req, res, next) => {
       console.error(err.stack);
@@ -158,17 +165,10 @@ async function startServer() {
       });
     });
 
-    // 404 handler
-    app.use('*', (req, res) => {
+    // 404 handler (for API routes only)
+    app.use('/api/*', (req, res) => {
       res.status(404).json({ error: 'Route not found' });
     });
-
-    if (process.env.NODE_ENV === 'production') {
-      app.use(express.static(path.join(__dirname, '../client/build')));
-      app.get('*', (req, res) => {
-        res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
-      });
-    }
 
     const PORT = process.env.PORT || 5000;
 
