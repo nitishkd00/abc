@@ -6,8 +6,6 @@ const User = require('../models/User');
 const { authenticateToken } = require('../middleware/auth');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
-const passport = require('passport');
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
 
 // In-memory store for reset codes (replace with DB in production)
 const resetCodes = {};
@@ -174,40 +172,6 @@ router.post('/reset-password', async (req, res) => {
   await user.save();
   delete resetCodes[email];
   res.json({ message: 'Password updated successfully' });
-});
-
-// Google OAuth setup
-passport.use(new GoogleStrategy({
-  clientID: process.env.GOOGLE_CLIENT_ID || 'GOOGLE_CLIENT_ID',
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'GOOGLE_CLIENT_SECRET',
-  callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback',
-}, async (accessToken, refreshToken, profile, done) => {
-  try {
-    let user = await User.findOne({ email: profile.emails[0].value });
-    if (!user) {
-      user = await User.create({
-        username: profile.displayName,
-        email: profile.emails[0].value,
-        password_hash: 'GOOGLE_OAUTH',
-        wallet_balance: 0,
-        locked_amount: 0,
-        is_admin: false,
-      });
-    }
-    return done(null, user);
-  } catch (err) {
-    return done(err, null);
-  }
-}));
-
-// Express routes for Google OAuth
-router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-
-router.get('/google/callback', passport.authenticate('google', { session: false, failureRedirect: '/login' }), (req, res) => {
-  // Issue JWT and redirect to frontend with token
-  const token = jwt.sign({ userId: req.user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-  // Redirect to frontend with token as query param
-  res.redirect(`${process.env.CLIENT_URL || 'http://localhost:3000'}/google-auth?token=${token}`);
 });
 
 // Get current user profile
